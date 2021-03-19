@@ -2,10 +2,10 @@ import numpy as np
 import math as m
 import tkinter as tk
 file_name = "coords.txt"
-edges = np.zeros(shape=(48,6))
+edges = np.ones(shape=(48,6))
 
 def projection(x, y, z):
-   r = 0.0007
+   r = 0.0001
    matrix_2d = np.array([[x/(r*z +1), y/(r*z +1)]])
    return matrix_2d
 
@@ -83,12 +83,16 @@ class App(tk.Tk):
               if event.keysym == 'a':
                      SX, SY = 1.2, 1.2
               if event.keysym == 'd':
-                     SX, SY = -1.2, -1.2
-
+                     edges[:, [1,4]] = m.cos(angle)*edges[:, [1,4]] - m.sin(angle)*edges[:, 2]
+                     edges[:, 4] = m.cos(angle)*edges[:, 4] - m.sin(angle)*edges[:, 5]
+                     edges[:, 2] = m.sin(angle)*edges[:, 1] + m.cos(angle)*edges[:, 2]
+                     edges[:, 4] = m.sin(angle)*edges[:, 4] + m.cos(angle)*edges[:, 5]
+              self.update_drawing()
 
 def read_data(file_name):
        global edges
        f = open(file_name, "r")
+       mod = 3
        for n, line in enumerate(f):
               line = line.replace("\n", "")
               line = line.split(",")
