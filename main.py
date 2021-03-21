@@ -1,12 +1,9 @@
 import numpy as np
 import math as m
 import tkinter as tk
-file_name = "coords.txt"
+file_name = "VCam\coords.txt"
 EDGES = np.ones(shape=(48,6))
-CUBE_1 = np.zeros(shape=(8,4))
-CUBE_2 = np.zeros(shape=(8,4))
-CUBE_3 = np.zeros(shape=(8,4))
-CUBE_4 = np.zeros(shape=(8,4))
+CENTER = 350.0
 
 def projection(x, y, z):
    r = 0.0001
@@ -17,7 +14,7 @@ class App(tk.Tk):
        def __init__(self):
               super().__init__()
               self.canv = tk.Canvas(self, bg = 'white')
-              self.canv["width"] = 800
+              self.canv["width"] = 700
               self.canv["height"] = 700
               self.canv.focus_set()
               self.draw()
@@ -73,7 +70,9 @@ class App(tk.Tk):
               if event.keysym == 'minus':
                      SX, SY, SZ = 1.2, 1.2, 1.2
               zoom_matrix = np.array([SX, SY, SZ, SX, SY, SZ])
+              EDGES -= CENTER
               EDGES = EDGES / SX
+              EDGES += CENTER
               self.update_drawing()
 
        def process_rotation(self, event):
@@ -92,6 +91,7 @@ class App(tk.Tk):
                      zoom_matrix = np.array([[m.cos(angle), 0, m.sin(angle), 0], [0, 1, 0, 0], [-m.sin(angle), 0, m.cos(angle), 0], [0, 0, 0, 1]])
 
               for edge in EDGES:
+                     edge -= CENTER
                      xyz = np.ones(shape=(1, 4))
                      xyz2 = np.ones(shape=(1, 4))
                      xyz[0][0], xyz[0][1], xyz[0][2] = edge[0], edge[1], edge[2]
@@ -99,7 +99,7 @@ class App(tk.Tk):
                      xyz = xyz.dot(zoom_matrix)
                      xyz2 = xyz2.dot(zoom_matrix)
                      edge[0:6] = xyz[0][0], xyz[0][1], xyz[0][2], xyz2[0][0], xyz2[0][1], xyz2[0][2]
-
+                     edge += CENTER
               self.update_drawing()
 
 def read_data(file_name):
