@@ -1,12 +1,15 @@
 import numpy as np
 import math as m
 import tkinter as tk
-file_name = "VCam\coords.txt"
+file_name = "VCAM/coords.txt"
+cubes_file = "VCAM/new_coords.txt"
 EDGES = np.ones(shape=(48,6))
 CENTER = 350.0
+CUBE = np.ones(shape=(32, 4))
+NUM = np.ones(shape=(12, 2))
 
 def projection(x, y, z):
-   r = 0.0001
+   r = 0.0008
    matrix_2d = np.array([[x/(r*z +1), y/(r*z +1)]])
    return matrix_2d
 
@@ -17,11 +20,14 @@ class App(tk.Tk):
               self.canv["width"] = 700
               self.canv["height"] = 700
               self.canv.focus_set()
-              self.draw()
+              # self.draw()
+              self.draw_cubes()
               self.canv.bind("<Up>", self.process_movements)
               self.canv.bind("<Down>", self.process_movements)
               self.canv.bind("<Right>", self.process_movements)
               self.canv.bind("<Left>", self.process_movements)
+              self.canv.bind("0", self.process_movements)
+              self.canv.bind("9", self.process_movements)
               self.canv.bind("+", self.process_zoom)
               self.canv.bind("-", self.process_zoom)
               self.canv.bind("w", self.process_rotation)
@@ -35,71 +41,83 @@ class App(tk.Tk):
                      coords_1 = projection(edge[0], edge[1], edge[2])
                      coords_2 = projection(edge[3], edge[4], edge[5])
                      side = self.canv.create_line(coords_1[0][0], coords_1[0][1], coords_2[0][0], coords_2[0][1])
-
+       
+       def draw_cubes(self):
+              for n in NUM:
+                     first, second = int(n[0]), int(n[1])
+                     for n in range (4):
+                            coords_1 = projection(CUBE[first][0], CUBE[first][1], CUBE[first][2])
+                            coords_2 = projection(CUBE[second][0], CUBE[second][1], CUBE[second][2])
+                            side = self.canv.create_line(coords_1[0][0], coords_1[0][1], coords_2[0][0], coords_2[0][1])
+                            first += 8
+                            second += 8
 
        def update_drawing(self):
-              all_items = self.canv.find_all()
-              for n, item in enumerate(all_items):
-                     #self.canv.itemconfig(item, fill='green', width=2)
-                     coords_1 = projection(EDGES[n][0], EDGES[n][1], EDGES[n][2])
-                     coords_2 = projection(EDGES[n][3], EDGES[n][4], EDGES[n][5])
-                     self.canv.coords(item, coords_1[0][0], coords_1[0][1], coords_2[0][0], coords_2[0][1]) 
+              all_items = self.canv.delete("all")
+              for n in NUM:
+                     first, second = int(n[0]), int(n[1])
+                     for n in range (4):
+                            coords_1 = projection(CUBE[first][0], CUBE[first][1], CUBE[first][2])
+                            coords_2 = projection(CUBE[second][0], CUBE[second][1], CUBE[second][2])
+                            side = self.canv.create_line(coords_1[0][0], coords_1[0][1], coords_2[0][0], coords_2[0][1])
+                            self.canv.itemconfig(side, fill='green', width=2)
+                            first += 8
+                            second += 8
 
 
        def process_movements(self, event):
-              global EDGES
               MOVE_X = 0
               MOVE_Y = 0
+              MOVE_Z = 0
               if event.keysym == 'Up':
-                     MOVE_Y = 2
+                     MOVE_Y = 10
               if event.keysym == 'Down':
-                     MOVE_Y =-2
+                     MOVE_Y =-10
               if event.keysym == 'Right':
-                     MOVE_X =-2
+                     MOVE_X =-10
               if event.keysym == 'Left':
-                     MOVE_X = 2
-              move_matrix = np.array([MOVE_X, MOVE_Y, 0, MOVE_X, MOVE_Y, 0])
-              EDGES+=move_matrix
+                     MOVE_X = 10
+              if event.keysym == '0':
+                     MOVE_Z =-10
+              if event.keysym == '9':
+                     MOVE_Z = 10
+
+              move_matrix = np.eye(4)
+              move_matrix[0:3, 3] = MOVE_X, MOVE_Y, MOVE_Z
+              for point in range (32):
+                     CUBE[point, :] = move_matrix.dot(CUBE[point, :])
+
               self.update_drawing()
 
        def process_zoom(self, event):
-              global EDGES
               SX, SY, SZ = 0, 0, 0
               if event.keysym == 'plus':
-                     SX, SY, SZ = 0.8, 0.8, 0.8
+                     SX, SY, SZ = 1.3, 1.3, 1.3
               if event.keysym == 'minus':
-                     SX, SY, SZ = 1.2, 1.2, 1.2
-              zoom_matrix = np.array([SX, SY, SZ, SX, SY, SZ])
-              EDGES -= CENTER
-              EDGES = EDGES / SX
-              EDGES += CENTER
+                     SX, SY, SZ = 0.9, 0.9, 0.9
+              zoom_matrix = np.array([[SX, 0, 0, 0], [0, SY, 0, 0], [0, 0, SZ, 0], [0, 0, 0, 1]])
+              for point in range (32):
+                     CUBE[point, :] = zoom_matrix.dot(CUBE[point, :])
+
               self.update_drawing()
 
        def process_rotation(self, event):
               axis = 'x'
-              angle = (10*m.pi)/180
-              if event.keysym == 'w':
-                     axis = 'y'
+              angle = (7*m.pi)/180
               if event.keysym == 's':
+                     axis = 'y'
+              if event.keysym == 'w':
                      angle = angle * (-1)
                      axis = 'y'
-              if event.keysym == 'a':
+              if event.keysym == 'd':
                       angle = angle * (-1)
               if axis == 'y':
-                     zoom_matrix = np.array([[1, 0, 0, 0], [0, m.cos(angle), -m.sin(angle), 0], [0, m.sin(angle), m.cos(angle), 0], [0, 0, 0, 1]])
+                     rotate_matrix = np.array([[1, 0, 0, 0], [0, m.cos(angle), -m.sin(angle), 0], [0, m.sin(angle), m.cos(angle), 0], [0, 0, 0, 1]])
               if axis == 'x':
-                     zoom_matrix = np.array([[m.cos(angle), 0, m.sin(angle), 0], [0, 1, 0, 0], [-m.sin(angle), 0, m.cos(angle), 0], [0, 0, 0, 1]])
+                     rotate_matrix = np.array([[m.cos(angle), 0, m.sin(angle), 0], [0, 1, 0, 0], [-m.sin(angle), 0, m.cos(angle), 0], [0, 0, 0, 1]])
+              for point in range (32):
+                     CUBE[point, :] = rotate_matrix.dot(CUBE[point, :])
 
-              for edge in EDGES:
-                     edge -= CENTER
-                     xyz = np.ones(shape=(1, 4))
-                     xyz2 = np.ones(shape=(1, 4))
-                     xyz[0][0], xyz[0][1], xyz[0][2] = edge[0], edge[1], edge[2]
-                     xyz2[0][0], xyz2[0][1], xyz2[0][2] = edge[3], edge[4], edge[5]
-                     xyz = xyz.dot(zoom_matrix)
-                     xyz2 = xyz2.dot(zoom_matrix)
-                     edge[0:6] = xyz[0][0], xyz[0][1], xyz[0][2], xyz2[0][0], xyz2[0][1], xyz2[0][2]
-                     edge += CENTER
               self.update_drawing()
 
 def read_data(file_name):
@@ -114,14 +132,19 @@ def read_data(file_name):
 
 def read_cubes(file_name):
        f = open(file_name, "r")
-       for n,line in enumerate(f):
+       for n, line in enumerate(f):
               line = line.replace("\n", "")
               line = line.split(",")
-              CUBE_1[n,:] = float(line[0]), float(line[1]), float(line[2]), 1
+              if n < 32:
+                     CUBE[n,:3] = float(line[0]), float(line[1]), float(line[2])
+              else:
+                     NUM[n-32,:] = int(line[0]), int(line[1])             
+
 
 
 if __name__ == "__main__":
-       read_data(file_name)
+       read_cubes(cubes_file)
+       #read_data(file_name)
        app = App()
        app.title("Grafika komputerowa")
        app.mainloop()
